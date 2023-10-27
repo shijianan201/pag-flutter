@@ -43,8 +43,10 @@ class PAGView extends StatefulWidget {
   /// Notifies the repetition of the animation.
   PAGCallback? onAnimationRepeat;
 
-  /// 加载失败时的默认控件构造器
+  /// 加载过程中的默认控件构造器
   Widget Function(BuildContext context)? defaultBuilder;
+  /// 加载失败时的默认控件构造器
+  Widget Function(BuildContext context)? errorBuilder;
 
   static const int REPEAT_COUNT_LOOP = -1; //无限循环
   static const int REPEAT_COUNT_DEFAULT = 1; //默认仅播放一次
@@ -62,6 +64,7 @@ class PAGView extends StatefulWidget {
     this.onAnimationCancel,
     this.onAnimationRepeat,
     this.defaultBuilder,
+        this.errorBuilder,
     Key? key,
   }) : super(key: key);
 
@@ -79,6 +82,7 @@ class PAGView extends StatefulWidget {
     this.onAnimationCancel,
     this.onAnimationRepeat,
     this.defaultBuilder,
+        this.errorBuilder,
     Key? key,
   }) : super(key: key);
 
@@ -96,6 +100,7 @@ class PAGView extends StatefulWidget {
     this.onAnimationCancel,
     this.onAnimationRepeat,
     this.defaultBuilder,
+        this.errorBuilder,
     Key? key,
   }) : super(key: key);
 
@@ -105,6 +110,7 @@ class PAGView extends StatefulWidget {
 
 class PAGViewState extends State<PAGView> {
   bool _hasLoadTexture = false;
+  bool loadError = false;
   int _textureId = -1;
 
   double rawWidth = 0;
@@ -175,6 +181,7 @@ class PAGViewState extends State<PAGView> {
       }
       if (mounted) {
         setState(() {
+          loadError = false;
           _hasLoadTexture = true;
         });
         widget.onInit?.call();
@@ -183,6 +190,12 @@ class PAGViewState extends State<PAGView> {
       }
     } catch (e) {
       print('PAGViewState error: $e');
+      if(mounted) {
+        setState(() {
+          _hasLoadTexture = false;
+          loadError = true;
+        });
+      }
     }
 
     // 事件回调
@@ -241,14 +254,18 @@ class PAGViewState extends State<PAGView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_hasLoadTexture) {
-      return Container(
-        width: widget.width ?? (rawWidth / 2),
-        height: widget.height ?? (rawHeight / 2),
-        child: Texture(textureId: _textureId),
-      );
-    } else {
-      return widget.defaultBuilder?.call(context) ?? Container();
+    if(loadError){
+      return widget.errorBuilder?.call(context) ?? Container();
+    }else{
+      if (_hasLoadTexture) {
+        return Container(
+          width: widget.width ?? (rawWidth / 2),
+          height: widget.height ?? (rawHeight / 2),
+          child: Texture(textureId: _textureId),
+        );
+      } else {
+        return widget.defaultBuilder?.call(context) ?? Container();
+      }
     }
   }
 
